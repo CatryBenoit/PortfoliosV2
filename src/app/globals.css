@@ -1,26 +1,132 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* 1. Les animations (optimisées pour plus de punch) */
+@keyframes flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; filter: brightness(1); }
+  20%, 22%, 24%, 55% { opacity: 0.7; filter: brightness(1.5); }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@keyframes scan {
+  from { top: 0%; }
+  to { top: 100%; }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(400%); }
+}
+
+/* Animation de pulsation pour les bordures néon */
+@keyframes neon-pulse {
+  0%, 100% { border-color: rgba(34, 211, 238, 0.6); box-shadow: 0 0 10px rgba(34, 211, 238, 0.2); }
+  50% { border-color: rgba(34, 211, 238, 1); box-shadow: 0 0 20px rgba(34, 211, 238, 0.4); }
+}
+
+/* 2. Les classes personnalisées renforcées */
+@layer utilities {
+  .glass-panel {
+    /* Fond beaucoup plus sombre et opaque pour la lisibilité */
+    background-color: rgba(7, 11, 20, 0.95); 
+    backdrop-filter: blur(16px);
+    /* Bordure plus épaisse et lumineuse */
+    border: 2px solid rgba(34, 211, 238, 0.5); 
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(34, 211, 238, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  /* Une variante pour les éléments interactifs qui "brillent" au survol */
+  .glass-panel-interactive:hover {
+    border-color: rgba(34, 211, 238, 1);
+    box-shadow: 0 0 30px rgba(34, 211, 238, 0.3);
+  }
+
+  .text-glitch {
+    /* Texte blanc pur avec lueur cyan intense */
+    color: #fff;
+    text-shadow: 0 0 8px rgba(34, 211, 238, 0.8), 0 0 15px rgba(34, 211, 238, 0.4);
+    animation: flicker 4s infinite;
+    letter-spacing: 0.05em;
+  }
+
+  .scanline {
+    width: 100%;
+    height: 3px;
+    /* Scanline plus visible mais très fine */
+    background: linear-gradient(to bottom, transparent, rgba(34, 211, 238, 0.15), transparent);
+    position: absolute;
+    animation: scan 6s linear infinite;
+    pointer-events: none;
+    z-index: 100;
   }
 }
 
+/* 3. Reset de base pour la 3D */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #010103; /* Noir profond spatial */
+  color: #f0f9ff;
+  font-family: 'Orbitron', 'Inter', monospace; /* Si tu as Orbitron, sinon Inter */
+}
+
+/* Custom Scrollbar pour le panneau ProjectPanel (Style Cyberpunk) */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #22d3ee;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #67e8f9;
+}
+
+@layer utilities {
+  .glass-panel {
+    /* Fond très opaque pour la lisibilité */
+    background-color: rgba(7, 11, 20, 0.98); 
+    backdrop-filter: blur(16px);
+    /* Bordure épaisse et lumineuse */
+    border: 2px solid rgba(34, 211, 238, 0.8); 
+    box-shadow: 0 0 25px rgba(34, 211, 238, 0.2);
+    color: #fff;
+  }
+}
+
+/* 🟢 AJOUT : Forcer le conteneur du HUD à occuper tout l'écran */
+#hud-container {
+  height: 100dvh; /* dvh = dynamic viewport height, plus robuste sur mobile */
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.clip-path-hud {
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill {
+  -webkit-text-fill-color: white !important;
+  transition: background-color 9999s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px transparent inset;
 }
