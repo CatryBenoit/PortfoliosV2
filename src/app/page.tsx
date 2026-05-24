@@ -20,10 +20,19 @@ function CameraRig({ activeProject, controlsRef }: { activeProject: any, control
       const planetObj = state.scene.getObjectByName(`planet-${activeProject.id}`);
       if (planetObj) {
         const pPos = planetObj.position;
-        state.camera.position.lerp(new THREE.Vector3(pPos.x + 5, pPos.y + 2, pPos.z + 6), 0.05);
-        controlsRef.current.target.lerp(new THREE.Vector3(pPos.x + 2, pPos.y, pPos.z), 0.05);
+        
+        state.camera.position.lerp(
+          new THREE.Vector3(pPos.x + 4, pPos.y + 1.5, pPos.z + 8), 
+          0.05
+        );
+        
+        controlsRef.current.target.lerp(
+          new THREE.Vector3(pPos.x + 4, pPos.y, pPos.z), 
+          0.05
+        );
       }
     } else {
+      // Retour au centre du système solaire
       controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
     }
   });
