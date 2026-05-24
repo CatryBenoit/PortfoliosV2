@@ -86,23 +86,24 @@ const handleGithubSync = async () => {
   try {
     const githubUsername = "CatryBenoit";
 
-    const githubToken = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+const githubToken = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
 
-    const authHeader = githubToken
-      ? { Authorization: `Bearer ${githubToken}` }
-      : {};
+// Type sécurisé pour TypeScript
+const authHeader: HeadersInit | undefined = githubToken
+  ? {
+      Authorization: `Bearer ${githubToken}`,
+    }
+  : undefined;
 
-    // ==========================================
-    // 1. RÉCUPÉRATION DES REPOS
-    // ==========================================
-    const response = await fetch(
-      `https://api.github.com/users/${githubUsername}/repos`,
-      {
-        headers: {
-          ...authHeader,
-        },
-      }
-    );
+// ==========================================
+// 1. RÉCUPÉRATION DES REPOS
+// ==========================================
+const response = await fetch(
+  `https://api.github.com/users/${githubUsername}/repos`,
+  {
+    headers: authHeader,
+  }
+);
 
     if (!response.ok) {
       throw new Error(
@@ -161,7 +162,7 @@ const handleGithubSync = async () => {
           {
             headers: {
               Accept: "application/vnd.github.raw",
-              ...authHeader,
+            ...(authHeader || {}),
             },
           }
         );
