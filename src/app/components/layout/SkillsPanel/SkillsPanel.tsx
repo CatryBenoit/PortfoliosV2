@@ -1,13 +1,105 @@
 "use client";
-import { X, Cpu, Zap, Code2, Database, Layout } from "lucide-react";
-import { SKILLS_STYLES as S } from "./SkillsPanel.styles"; 
 
-export default function SkillsPanel({ onClose }: { onClose: () => void }) {
-  const skills = [
-    { name: "Frontend (React / Next.js)", level: 90, icon: <Layout size={14}/> },
-    { name: "Backend (Java / Node.js)", level: 85, icon: <Cpu size={14}/> },
-    { name: "Database (PostgreSQL / Supabase)", level: 80, icon: <Database size={14}/> },
-    { name: "Three.js / 3D Graphics", level: 75, icon: <Zap size={14}/> },
+import {
+  X,
+  Code2,
+  Database,
+  Monitor,
+  Server,
+  Wrench,
+  BrainCircuit,
+  Users,
+} from "lucide-react";
+
+import { SKILLS_STYLES as S } from "./SkillsPanel.styles";
+
+export default function SkillsPanel({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  const categories = [
+    {
+      title: "LANGUAGES",
+      icon: <Code2 size={16} />,
+      skills: [
+        "C",
+        "C++",
+        "Python",
+        "Java",
+        "JavaScript",
+        "Kotlin",
+        "Swift",
+        "PHP",
+        "HTML",
+        "CSS",
+      ],
+    },
+
+    {
+      title: "DATABASES",
+      icon: <Database size={16} />,
+      skills: [
+        "MySQL",
+        "PostgreSQL",
+        "IBM Db2",
+        "Redis",
+      ],
+    },
+
+    {
+      title: "FRAMEWORKS",
+      icon: <Server size={16} />,
+      skills: [
+        "Flask",
+        "Spring Boot",
+        "Laravel",
+        "Vue.js",
+        "Angular",
+      ],
+    },
+
+    {
+      title: "SYSTEMS",
+      icon: <Monitor size={16} />,
+      skills: [
+        "Linux",
+        "Windows",
+      ],
+    },
+
+    {
+      title: "SOFTWARE",
+      icon: <Wrench size={16} />,
+      skills: [
+        "Visual Studio Code",
+        "IntelliJ IDEA",
+        "Microsoft Office",
+        "Arduino IDE",
+      ],
+    },
+
+    {
+      title: "ANALYSIS & DESIGN",
+      icon: <BrainCircuit size={16} />,
+      skills: [
+        "Analyse des besoins",
+        "Cahier des charges",
+        "Merise",
+        "UML",
+      ],
+    },
+
+    {
+      title: "SOFT SKILLS",
+      icon: <Users size={16} />,
+      skills: [
+        "Travail en équipe",
+        "Communication",
+        "Autonomie",
+        "Résolution de problèmes",
+      ],
+    },
   ];
 
   return (
@@ -18,38 +110,88 @@ export default function SkillsPanel({ onClose }: { onClose: () => void }) {
         <div className={S.header}>
           <div>
             <div className={S.headerSubtitle}>
-              <Code2 size={14} /> 
+              <Code2 size={14} />
               <span>CORE_COMPETENCIES</span>
             </div>
-            <h2 className={S.headerTitle}>System_Specs</h2>
+
+            <h2 className={S.headerTitle}>
+              System_Specifications
+            </h2>
           </div>
-          <button onClick={onClose} className={S.closeBtn}>
+
+          <button
+            onClick={onClose}
+            className={S.closeBtn}
+          >
             <X size={20} />
           </button>
         </div>
 
-        {/* LISTE DES SKILLS */}
-        <div className={S.listContainer}>
-          {skills.map((skill, index) => (
-            <div key={index} className={S.skillRow}>
-              <div className={S.skillInfo}>
-                <span className={S.skillLabel}>{skill.icon} {skill.name}</span>
-                <span className={S.skillPercent}>{skill.level}%</span>
+        {/* CONTENT */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+
+          {categories.map((category, index) => (
+            <div
+              key={index}
+              className="
+                border border-cyan-500/30
+                bg-black/30
+                p-4
+                backdrop-blur-sm
+              "
+            >
+              {/* CATEGORY TITLE */}
+              <div className="
+                flex items-center gap-2
+                text-cyan-400
+                font-bold
+                text-xs
+                tracking-[0.25em]
+                uppercase
+                mb-4
+              ">
+                {category.icon}
+                {category.title}
               </div>
-              <div className={S.progressBarContainer}>
-                <div 
-                  className={S.progressBarFill} 
-                  style={{ width: `${skill.level}%` }}
-                />
+
+              {/* SKILLS */}
+              <div className="
+                flex flex-wrap gap-2
+                flex flex-wrap gap-x-4 gap-y-2
+              ">
+                {category.skills.map((skill, i) => (
+                  <div
+                    key={i}
+                    className="
+                      px-10 py-10
+                      bg-cyan-500/5
+                      p-10
+
+                      text-white
+                      text-xs
+                      uppercase
+                      tracking-wider
+
+                      hover:bg-cyan-400/10
+                      flex flex-wrap gap-x-4 gap-y-2
+
+                      transition-all
+                    "
+                  >
+
+                  {skill  + "," +  "\u00A0"}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
 
-        {/* TERMINAL FOOTER */}
+        {/* FOOTER */}
         <div className={S.terminalLog}>
-          &gt; All systems operating at peak performance.<br/>
-          &gt; Ready for integration on high-scale projects.
+          &gt; Multi-domain engineering profile detected.
+          <br />
+          &gt; Ready for full-stack, embedded and software architecture missions.
         </div>
       </div>
     </div>
