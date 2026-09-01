@@ -25,6 +25,7 @@ jobs:
           push: true
           tags: ghcr.io/catrybenoit/portfoliov2:latest
           build-args: |
+            DATABASE_URL="file:./SQL.db"
             NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             NEXT_PUBLIC_ADMIN_PASSWORD=${{ secrets.NEXT_PUBLIC_ADMIN_PASSWORD }}
