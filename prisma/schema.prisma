@@ -1,0 +1,33 @@
+// Ceci est généré automatiquement par Prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- VOS TABLES COMMENCENT ICI ---
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // <--- INDISPENSABLE POUR L'UPSERT
+  system      String
+  tech        String
+  color       String
+  pos_x       Float
+  pos_y       Float
+  pos_z       Float
+  description String?
+  github_url  String?
+  createdAt   DateTime @default(now())
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  content   String
+  createdAt DateTime @default(now())
+}

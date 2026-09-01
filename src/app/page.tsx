@@ -4,15 +4,19 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Stars, OrbitControls, useTexture } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { supabase } from "./lib/supabase";
-import HUD from "./components/layout/HUD";
-import Soleil from "./components/canvas/Soleil/Soleil";
-import Planete from "./components/canvas/Planet/Planet"; 
-import HyperSpace from "./components/canvas/HyperSpace/HyperSpace";
+
+// 1. On supprime l'import de supabase et on importe la Server Action
+import { getProjects } from "@/app/actions"; // <-- Ajustez le chemin si besoin
+
+import HUD from "./admin/components/layout/HUD";
+import Soleil from "./admin/components/canvas/Soleil/Soleil";
+import Planete from "./admin/components/canvas/Planet/Planet"; 
+import HyperSpace from "./admin/components/canvas/HyperSpace/HyperSpace";
 
 type SystemKey = "PRO" | "PERSO" | "SCOLAIRE";
 
 function CameraRig({ activeProject, controlsRef }: { activeProject: any, controlsRef: any }) {
+  // ... (Ce code reste inchangé)
   useFrame((state) => {
     if (!controlsRef.current) return;
 
@@ -20,19 +24,10 @@ function CameraRig({ activeProject, controlsRef }: { activeProject: any, control
       const planetObj = state.scene.getObjectByName(`planet-${activeProject.id}`);
       if (planetObj) {
         const pPos = planetObj.position;
-        
-        state.camera.position.lerp(
-          new THREE.Vector3(pPos.x + 4, pPos.y + 1.5, pPos.z + 8), 
-          0.05
-        );
-        
-        controlsRef.current.target.lerp(
-          new THREE.Vector3(pPos.x + 4, pPos.y, pPos.z), 
-          0.05
-        );
+        state.camera.position.lerp(new THREE.Vector3(pPos.x + 4, pPos.y + 1.5, pPos.z + 8), 0.05);
+        controlsRef.current.target.lerp(new THREE.Vector3(pPos.x + 4, pPos.y, pPos.z), 0.05);
       }
     } else {
-      // Retour au centre du système solaire
       controlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), 0.05);
     }
   });
@@ -40,6 +35,7 @@ function CameraRig({ activeProject, controlsRef }: { activeProject: any, control
 }
 
 function VoieLactee() {
+  // ... (Ce code reste inchangé)
   const bgRef = useRef<THREE.Mesh>(null);
   const texture = useTexture("/textures/Star/8k_stars_milky_way.jpg");
 
@@ -53,14 +49,7 @@ function VoieLactee() {
   return (
     <mesh ref={bgRef}>
       <sphereGeometry args={[1000, 64, 64]} />
-      
-      <meshBasicMaterial 
-        map={texture} 
-        side={THREE.BackSide} 
-        fog={false} 
-        transparent
-        opacity={1} 
-      />
+      <meshBasicMaterial map={texture} side={THREE.BackSide} fog={false} transparent opacity={1} />
     </mesh>
   );
 }
@@ -70,12 +59,8 @@ export default function Home() {
   const [activeProject, setActiveProject] = useState<any | null>(null);
   const [isJumping, setIsJumping] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // État pour gérer l'affichage du pop-up de refonte
   const [showWarning, setShowWarning] = useState(true);
-  
   const [allProjects, setAllProjects] = useState<any[]>([]);
-  
   const [uniqueTechs, setUniqueTechs] = useState<string[]>([]);
   const [selectedTech, setSelectedTech] = useState<string>("ALL");
 
@@ -84,7 +69,9 @@ export default function Home() {
   useEffect(() => {
     const loadPlanets = async () => {
       setLoading(true);
-      const { data, error } = await supabase.from("projects").select("*");
+      
+      // 2. On utilise la Server Action à la place de Supabase
+      const { data, error } = await getProjects();
       
       if (error) {
         console.error("Erreur de liaison de données :", error);
@@ -111,6 +98,7 @@ export default function Home() {
     loadPlanets();
   }, []);
 
+  // ... (Le reste de votre code, fonctions handleTechChange, return(), etc., reste strictement identique)
   const currentPlanets = allProjects.filter((p) => {
     if (selectedTech !== "ALL") {
       return p.tech.toLowerCase().includes(selectedTech.toLowerCase());
@@ -120,39 +108,25 @@ export default function Home() {
 
   const handleTechChange = (tech: string) => {
     if (tech === selectedTech || isJumping) return;
-    
     setIsJumping(true);
     setActiveProject(null);
-
     setTimeout(() => {
       setSelectedTech(tech);
-      if (controlsRef.current) {
-        controlsRef.current.target.set(0, 0, 0);
-      }
+      if (controlsRef.current) controlsRef.current.target.set(0, 0, 0);
     }, 500);
-
-    setTimeout(() => {
-      setIsJumping(false);
-    }, 1200);
+    setTimeout(() => setIsJumping(false), 1200);
   };
 
   const changeSystem = (system: SystemKey) => {
     if (system === currentSystem || isJumping) return;
-
     setIsJumping(true);
     setActiveProject(null);
-
     setTimeout(() => {
       setCurrentSystem(system);
       setSelectedTech("ALL"); 
-      if (controlsRef.current) {
-        controlsRef.current.target.set(0, 0, 0);
-      }
+      if (controlsRef.current) controlsRef.current.target.set(0, 0, 0);
     }, 500);
-
-    setTimeout(() => {
-      setIsJumping(false);
-    }, 1200);
+    setTimeout(() => setIsJumping(false), 1200);
   };
 
   const nextProject = () => {
@@ -179,53 +153,33 @@ export default function Home() {
 
   return (
     <main className="fixed inset-0 w-screen h-screen bg-[#010103] overflow-hidden">
-      
-      {/* POP-UP DE REFONTE */}
+      {/* ... Votre JSX habituel ... */}
       {showWarning && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-[#010103] border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)] rounded-lg p-6 max-w-md w-full font-mono relative overflow-hidden">
-            {/* Ligne animée en haut du modal */}
             <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 animate-pulse"></div>
-            
             <div className="flex items-start gap-4 mb-6 mt-2">
               <span className="text-3xl animate-pulse">⚠️</span>
               <div>
-                <h2 className="text-amber-400 font-bold text-lg uppercase tracking-widest mb-2">
-                  Avertissement Système
-                </h2>
-                <p className="text-amber-200/80 text-sm leading-relaxed">
-                  Ce systeme est actuellement en cours de refonte. Des bugs ou des données manquantes peuvent survenir lors de votre navigation.
-                </p>
+                <h2 className="text-amber-400 font-bold text-lg uppercase tracking-widest mb-2">Avertissement Système</h2>
+                <p className="text-amber-200/80 text-sm leading-relaxed">Ce systeme est actuellement en cours de refonte. Des bugs ou des données manquantes peuvent survenir lors de votre navigation.</p>
               </div>
             </div>
-            
-            <button 
-              onClick={() => setShowWarning(false)}
-              className="w-full py-3 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 hover:border-amber-400 text-amber-400 uppercase tracking-widest text-sm transition-all duration-300"
-            >
+            <button onClick={() => setShowWarning(false)} className="w-full py-3 bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 hover:border-amber-400 text-amber-400 uppercase tracking-widest text-sm transition-all duration-300">
               [ Accéder au système ]
             </button>
           </div>
         </div>
       )}
-      
       <div className={`fixed inset-0 z-40 bg-cyan-100 transition-opacity duration-500 pointer-events-none mix-blend-overlay ${isJumping ? "opacity-20" : "opacity-0"}`} />
-
       <div className="absolute top-0 left-0 w-full h-full z-0">
         <Canvas camera={{ position: [0, 8, 20], fov: 45, far: 15000 }} onPointerMissed={() => setActiveProject(null)} style={{ width: '100%', height: '100%' }}>
           <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={8} maxDistance={40} enabled={!activeProject && !isJumping} />
-
           <ambientLight intensity={0.2} />
           <fog attach="fog" args={["#010103", 50, 800]} />
-          
           <Stars radius={100} depth={50} count={7000} factor={4} saturation={0} fade speed={isJumping ? 25 : 1.5} />
-
           <CameraRig activeProject={activeProject} controlsRef={controlsRef} />
-          
-          <Suspense fallback={null}>
-            <HyperSpace isJumping={isJumping} />
-          </Suspense>
-
+          <Suspense fallback={null}><HyperSpace isJumping={isJumping} /></Suspense>
           {!isJumping && (
             <Suspense fallback={null}>
               <VoieLactee />
@@ -235,25 +189,10 @@ export default function Home() {
               ))}
             </Suspense>
           )}
-
-          <EffectComposer>
-            <Bloom mipmapBlur luminanceThreshold={0.8} intensity={1.5} />
-          </EffectComposer>
+          <EffectComposer><Bloom mipmapBlur luminanceThreshold={0.8} intensity={1.5} /></EffectComposer>
         </Canvas>
       </div>
-
-      {/* HUD  */}
-      <HUD 
-        activeProject={activeProject} 
-        onClose={() => setActiveProject(null)} 
-        onNext={nextProject} 
-        onPrev={prevProject} 
-        currentSystem={currentSystem} 
-        onChangeSystem={changeSystem} 
-        uniqueTechs={uniqueTechs}
-        selectedTech={selectedTech}
-        onSelectTech={handleTechChange}
-      />
+      <HUD activeProject={activeProject} onClose={() => setActiveProject(null)} onNext={nextProject} onPrev={prevProject} currentSystem={currentSystem} onChangeSystem={changeSystem} uniqueTechs={uniqueTechs} selectedTech={selectedTech} onSelectTech={handleTechChange} />
     </main>
   );
 }

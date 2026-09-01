@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
-import { ShieldAlert, Save, Plus, Database, Rocket, Lock, GitBranch, RefreshCw } from "lucide-react";
-import { supabase } from "../lib/supabase"; 
+import { ShieldAlert, Save, Plus, Database, Rocket, Lock, RefreshCw } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
+
+// 1. On importe nos Server Actions au lieu de Supabase
+import { createOrUpdateProject, getExistingProjectsForSync } from "@/app/actions";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -20,9 +22,6 @@ export default function AdminPage() {
     github_url: "" 
   });
 
-  // ==========================================
-  // SÉCURITÉ DU COCKPIT
-  // ==========================================
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const secureCryptoKey = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
@@ -37,9 +36,6 @@ export default function AdminPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // ==========================================
-  // FONCTION 1 : FORGE MANUELLE (PROJET PRIVÉ)
-  // ==========================================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
@@ -50,22 +46,20 @@ export default function AdminPage() {
     const posZ = Math.sin(angle) * radius;
 
     try {
-      const { error } = await supabase.from("projects").upsert(
-        {
-          name: formData.name, 
-          system: formData.system,
-          tech: formData.tech,
-          color: formData.color,
-          pos_x: posX,
-          pos_y: 0,
-          pos_z: posZ,
-          description: formData.description,
-          github_url: formData.github_url 
-        },
-        { onConflict: 'name' }
-      );
+      // 2. On utilise la Server Action pour forger la planète
+      const { error } = await createOrUpdateProject({
+        name: formData.name, 
+        system: formData.system,
+        tech: formData.tech,
+        color: formData.color,
+        pos_x: posX,
+        pos_y: 0,
+        pos_z: posZ,
+        description: formData.description,
+        github_url: formData.github_url 
+      });
 
-      if (error) throw error;
+      if (error) throw new Error(error);
 
       alert(`🚀 Planète privée "${formData.name}" forgée avec succès !`);
       setFormData({ ...formData, name: "", tech: "", posZ: "10", description: "", github_url: "" });
@@ -77,300 +71,119 @@ export default function AdminPage() {
     }
   };
 
- // ==========================================
-// FONCTION 2 : SYNCHRONISATION GITHUB (FORCE BRUTE)
-// ==========================================
-const handleGithubSync = async () => {
-  setIsSyncing(true);
+  const handleGithubSync = async () => {
+    setIsSyncing(true);
 
-  try {
-    const githubUsername = "CatryBenoit";
+    try {
+      const githubUsername = "CatryBenoit";
+      const githubToken = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
 
-const githubToken = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+      const authHeader: HeadersInit | undefined = githubToken
+        ? { Authorization: `Bearer ${githubToken}` }
+        : undefined;
 
-// Type sécurisé pour TypeScript
-const authHeader: HeadersInit | undefined = githubToken
-  ? {
-      Authorization: `Bearer ${githubToken}`,
-    }
-  : undefined;
+      const response = await fetch(`https://api.github.com/users/${githubUsername}/repos`, {
+        headers: authHeader,
+      });
 
-// ==========================================
-// 1. RÉCUPÉRATION DES REPOS
-// ==========================================
-const response = await fetch(
-  `https://api.github.com/users/${githubUsername}/repos`,
-  {
-    headers: authHeader,
-  }
-);
+      if (!response.ok) throw new Error(`GitHub a refusé l'accès (${response.status})`);
+      const repos = await response.json();
 
-    if (!response.ok) {
-      throw new Error(
-        `GitHub a refusé l'accès (${response.status})`
+      // 3. On récupère les planètes existantes via la Server Action
+      const { data: existingProjects } = await getExistingProjectsForSync();
+
+      const existingMap = new Map(
+        existingProjects?.map((p: any) => [p.name.toLowerCase(), p]) || []
       );
-    }
 
-    const repos = await response.json();
+      let createdCount = 0;
+      let updatedCount = 0;
 
-    // ==========================================
-    // 2. RÉCUPÉRATION DES PROJETS EXISTANTS
-    // ==========================================
-    const { data: existingProjects } = await supabase
-      .from("projects")
-      .select("name, pos_x, pos_y, pos_z");
+      for (const repo of repos) {
+        const repoNameLower = repo.name.toLowerCase();
+        const isAlreadyInDb = existingMap.has(repoNameLower);
 
-    const existingMap = new Map(
-      existingProjects?.map((p) => [
-        p.name.toLowerCase(),
-        p,
-      ]) || []
-    );
+        let customTech = repo.language || "Markdown / Autre";
+        let customColor = "#22d3ee";
+        let customSystem = "PRO";
+        let customDesc = repo.description || "Aucune description fournie sur GitHub.";
 
-    let createdCount = 0;
-    let updatedCount = 0;
-
-    // ==========================================
-    // 3. BOUCLE REPOS
-    // ==========================================
-    for (const repo of repos) {
-      const repoNameLower = repo.name.toLowerCase();
-
-      const isAlreadyInDb =
-        existingMap.has(repoNameLower);
-
-      // ==========================================
-      // VALEURS PAR DÉFAUT
-      // ==========================================
-      let customTech =
-        repo.language || "Markdown / Autre";
-
-      let customColor = "#22d3ee";
-
-      let customSystem = "PRO";
-
-      let customDesc =
-        repo.description ||
-        "Aucune description fournie sur GitHub.";
-
-      // ==========================================
-      // LECTURE README
-      // ==========================================
-      try {
-        const readmeRes = await fetch(
-          `https://api.github.com/repos/${githubUsername}/${repo.name}/readme`,
-          {
-            headers: {
-              Accept: "application/vnd.github.raw",
-            ...(authHeader || {}),
-            },
-          }
-        );
-
-        if (readmeRes.ok) {
-          const readmeText = await readmeRes.text();
-
-          console.log(
-            `README DE ${repo.name} :`,
-            readmeText
+        try {
+          const readmeRes = await fetch(
+            `https://api.github.com/repos/${githubUsername}/${repo.name}/readme`,
+            { headers: { Accept: "application/vnd.github.raw", ...(authHeader || {}) } }
           );
 
-          // ==========================================
-          // RECHERCHE DU BLOC CONFIG
-          // ==========================================
-          const startTag =
-            "<!-- PORTFOLIO_CONFIG";
+          if (readmeRes.ok) {
+            const readmeText = await readmeRes.text();
+            const startTag = "<!-- PORTFOLIO_CONFIG";
+            const endTag = "-->";
+            const startIndex = readmeText.indexOf(startTag);
 
-          const endTag = "-->";
-
-          const startIndex =
-            readmeText.indexOf(startTag);
-
-          // Bloc trouvé
-          if (startIndex !== -1) {
-            const endIndex =
-              readmeText.indexOf(
-                endTag,
-                startIndex
-              );
-
-            if (endIndex !== -1) {
-              // Extraction du contenu
-              const blockContent =
-                readmeText.substring(
-                  startIndex + startTag.length,
-                  endIndex
-                );
-
-              console.log(
-                `CONFIG TROUVÉE POUR ${repo.name} :`,
-                blockContent
-              );
-
-              // ==========================================
-              // EXTRACTION DES DONNÉES
-              // ==========================================
-              const systemMatch =
-                blockContent.match(
-                  /system:\s*([^\r\n]+)/i
-                );
-
-              const techMatch =
-                blockContent.match(
-                  /tech:\s*([^\r\n]+)/i
-                );
-
+            if (startIndex !== -1) {
+              const endIndex = readmeText.indexOf(endTag, startIndex);
+              if (endIndex !== -1) {
+                const blockContent = readmeText.substring(startIndex + startTag.length, endIndex);
+                
+                const systemMatch = blockContent.match(/system:\s*([^\r\n]+)/i);
+                const techMatch = blockContent.match(/tech:\s*([^\r\n]+)/i);
                 const descMatch = blockContent.match(/desc:\s*([^\r\n]+)/i);
+                const colorMatch = blockContent.match(/color:\s*([^\r\n]+)/i);
 
-              const colorMatch =
-                blockContent.match(
-                  /color:\s*([^\r\n]+)/i
-                );
-
-              // ==========================================
-              // APPLICATION DES VALEURS
-              // ==========================================
-              if (systemMatch) {
-                customSystem =
-                  systemMatch[1]
-                    .trim()
-                    .toUpperCase();
+                if (systemMatch) customSystem = systemMatch[1].trim().toUpperCase();
+                if (techMatch) customTech = techMatch[1].trim();
+                if (colorMatch) customColor = colorMatch[1].trim();
+                if (descMatch) customDesc = descMatch[1].trim();
               }
-
-              if (techMatch) {
-                customTech =
-                  techMatch[1].trim();
-              }
-
-              if (colorMatch) {
-                customColor =
-                  colorMatch[1].trim();
-              }
-              if (descMatch) {
-                  customDesc = descMatch[1].trim();
-                }
-
-              console.log(
-                `✅ CONFIG APPLIQUÉE POUR ${repo.name}`,
-                {
-                  customSystem,
-                  customTech,
-                  customColor,
-                  customDesc,
-                }
-              );
-            } else {
-              console.log(
-                `⚠️ FIN DE BLOC INTROUVABLE POUR ${repo.name}`
-              );
             }
-          } else {
-            console.log(
-              `ℹ️ Aucun bloc config trouvé pour ${repo.name}`
-            );
           }
-        } else {
-          console.log(
-            `ℹ️ Aucun README pour ${repo.name}`
-          );
+        } catch (readmeError) {
+          console.warn(`❌ Impossible de lire le README de ${repo.name}`, readmeError);
         }
-      } catch (readmeError) {
-        console.warn(
-          `❌ Impossible de lire le README de ${repo.name}`,
-          readmeError
-        );
+
+        let posX, posY, posZ;
+
+        if (isAlreadyInDb) {
+          const oldPlanet = existingMap.get(repoNameLower)!;
+          posX = oldPlanet.pos_x;
+          posY = oldPlanet.pos_y;
+          posZ = oldPlanet.pos_z;
+          updatedCount++;
+        } else {
+          const angle = Math.random() * Math.PI * 2;
+          const radius = Math.floor(Math.random() * (22 - 8 + 1)) + 8;
+          posX = Math.cos(angle) * radius;
+          posY = 0;
+          posZ = Math.sin(angle) * radius;
+          createdCount++;
+        }
+
+        // 4. Upsert individuel via la Server Action
+        const { error } = await createOrUpdateProject({
+          name: repo.name,
+          system: customSystem,
+          tech: customTech,
+          color: customColor,
+          pos_x: posX,
+          pos_y: posY,
+          pos_z: posZ,
+          description: customDesc,
+          github_url: repo.html_url,
+        });
+
+        if (error) console.error(`Erreur pour ${repo.name}`, error);
       }
 
-      // ==========================================
-      // GESTION DES POSITIONS
-      // ==========================================
-      let posX;
-      let posY;
-      let posZ;
-
-      if (isAlreadyInDb) {
-        const oldPlanet =
-          existingMap.get(repoNameLower)!;
-
-        posX = oldPlanet.pos_x;
-        posY = oldPlanet.pos_y;
-        posZ = oldPlanet.pos_z;
-
-        updatedCount++;
-      } else {
-        const angle =
-          Math.random() * Math.PI * 2;
-
-        const radius =
-          Math.floor(
-            Math.random() * (22 - 8 + 1)
-          ) + 8;
-
-        posX = Math.cos(angle) * radius;
-        posY = 0;
-        posZ = Math.sin(angle) * radius;
-
-        createdCount++;
-      }
-
-      // ==========================================
-      // UPSERT SUPABASE
-      // ==========================================
-      const { error } = await supabase
-        .from("projects")
-        .upsert(
-          {
-            name: repo.name,
-            system: customSystem,
-            tech: customTech,
-            color: customColor,
-
-            pos_x: posX,
-            pos_y: posY,
-            pos_z: posZ,
-
-            description: customDesc,
-
-            github_url: repo.html_url,
-          },
-          {
-            onConflict: "name",
-          }
-        );
-
-      if (error) {
-        console.error(
-          `Erreur Supabase pour ${repo.name}`,
-          error
-        );
-      }
+      alert(`📡 Synchro terminée !\n\n🆕 Créés : ${createdCount}\n🔄 Mis à jour : ${updatedCount}`);
+      window.location.reload();
+    } catch (error) {
+      console.error("Erreur de synchronisation :", error);
+      alert("❌ Échec de la synchronisation GitHub.");
+    } finally {
+      setIsSyncing(false);
     }
+  };
 
-    // ==========================================
-    // FIN
-    // ==========================================
-    alert(
-      `📡 Synchro terminée !\n\n🆕 Créés : ${createdCount}\n🔄 Mis à jour : ${updatedCount}`
-    );
-
-    window.location.reload();
-  } catch (error) {
-    console.error(
-      "Erreur de synchronisation :",
-      error
-    );
-
-    alert(
-      "❌ Échec de la synchronisation GitHub."
-    );
-  } finally {
-    setIsSyncing(false);
-  }
-};
-
-  // ==========================================
-  // RENDER : ÉCRAN DE VERROUILLAGE
-  // ==========================================
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#010103] text-white font-mono flex items-center justify-center p-4">
@@ -398,15 +211,11 @@ const response = await fetch(
     );
   }
 
-  // ==========================================
-  // RENDER : PANNEAU DE CONTRÔLE ADMIN
-  // ==========================================
   return (
     <div className="min-h-screen bg-[#010103] text-white font-mono p-8 relative overflow-hidden">
       <div className="scanline z-0 pointer-events-none" />
 
       <div className="max-w-4xl mx-auto relative z-10">
-        
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12 border-b-2 border-cyan-500/50 pb-4 gap-4">
           <div>
             <div className="text-[10px] text-cyan-400 tracking-[0.3em] flex items-center gap-2 mb-1 font-bold">
@@ -429,7 +238,6 @@ const response = await fetch(
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
           <div className="lg:col-span-2 glass-panel p-6 border-2 border-cyan-400 bg-[#070b14]">
             <h2 className="text-cyan-400 font-bold uppercase tracking-widest text-sm mb-6 flex items-center gap-2">
               <Plus size={16} /> Forger un Projet Manuel (Privé)
@@ -503,7 +311,6 @@ const response = await fetch(
               <p>&gt; GITHUB: <span className="text-xs break-all text-cyan-400">{formData.github_url ? "LIEN_DÉTECTÉ" : "AUCUN"}</span></p>
             </div>
           </div>
-          
         </div>
       </div>
     </div>
