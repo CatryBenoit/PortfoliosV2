@@ -60,6 +60,17 @@ hover:before:translate-x-[120%]
 before:transition-transform before:duration-700
 
 clip-path-hud
+cursor-pointer 
+transition-all duration-300 ease-out
+hover:scale-110
+hover:border-cyan-400
+hover:bg-cyan-500/20
+    hover:shadow-[0_0_15px_rgba(34,211,238,0.6)]
+    hover:text-white
+    hover:border-cyan-400
+active:scale-95
+
+
 `
 ,
   navBtnActive: " glass-panel border-cyan-500/50 text-cyan-300 bg-cyan-900/40 shadow-[0_0_10px_rgba(34,211,238,0.2)]",
@@ -74,7 +85,7 @@ clip-path-hud
   navStationBox: "glass-panel p-3 md:p-4 w-56 md:w-80 pointer-events-auto flex flex-col gap-4 border-2 border-cyan-400 bg-[#070b14]",
   navStationHeader: "border-b border-cyan-500/30 pb-2 flex justify-between items-center",
   navStationTitle: "text-[20px] text-cyan-400 tracking-widest font-bold",
-  sysBtnBase: "text-left text-[18x] md:text-[11px] p-2 border-2 transition-all font-bold tracking-widest",
+  sysBtnBase: "text-left text-[18x] md:text-[11px] p-2 border-2 transition-all duration-200 font-bold tracking-widest cursor-pointer hover:translate-x-2 active:scale-95",    
   sysBtnActive: "border-cyan-400 bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.3)]",
   sysBtnInactive: "border-transparent text-white/40 hover:border-cyan-500/40 hover:text-white",
   filterWrapper: "pointer-events-auto",

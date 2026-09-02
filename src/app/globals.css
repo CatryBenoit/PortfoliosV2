@@ -18,6 +18,17 @@
   to { transform: translateX(400%); }
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 /* Animation de pulsation pour les bordures néon */
 @keyframes neon-pulse {
   0%, 100% { border-color: rgba(34, 211, 238, 0.6); box-shadow: 0 0 10px rgba(34, 211, 238, 0.2); }
@@ -27,12 +38,13 @@
 /* 2. Les classes personnalisées renforcées */
 @layer utilities {
   .glass-panel {
-    /* Fond beaucoup plus sombre et opaque pour la lisibilité */
-    background-color: rgba(7, 11, 20, 0.95); 
+    /* Fond très opaque pour la lisibilité */
+    background-color: rgba(7, 11, 20, 0.98); 
     backdrop-filter: blur(16px);
-    /* Bordure plus épaisse et lumineuse */
-    border: 2px solid rgba(34, 211, 238, 0.5); 
-    box-shadow: 0 0 25px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(34, 211, 238, 0.1);
+    /* Bordure épaisse et lumineuse */
+    border: 2px solid rgba(34, 211, 238, 0.8); 
+    box-shadow: 0 0 25px rgba(34, 211, 238, 0.2), inset 0 0 10px rgba(34, 211, 238, 0.1);
+    color: #fff;
     transition: all 0.3s ease;
   }
   
@@ -72,7 +84,61 @@ body {
   font-family: 'Orbitron', 'Inter', monospace; /* Si tu as Orbitron, sinon Inter */
 }
 
-/* Custom Scrollbar pour le panneau ProjectPanel (Style Cyberpunk) */
+/* 🟢 Forcer le conteneur du HUD à occuper tout l'écran */
+#hud-container {
+  height: 100dvh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.clip-path-hud {
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+}
+
+/* 🟢 Effet Bouton Radar Cyberpunk (coins coupés et bordure) */
+.cyber-btn {
+  position: relative;
+  background-color: transparent;
+}
+
+.cyber-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: transparent;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  transition: background-color 0.3s ease;
+  z-index: -2;
+}
+
+.cyber-btn::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background-color: #070b14;
+  clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+  z-index: -1;
+}
+
+.cyber-btn:hover::before {
+  background-color: #22d3ee;
+}
+
+.cyber-btn:hover {
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.6));
+}
+
+/* Custom Scrollbar Globale */
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -90,38 +156,7 @@ body {
   background: #67e8f9;
 }
 
-@layer utilities {
-  .glass-panel {
-    /* Fond très opaque pour la lisibilité */
-    background-color: rgba(7, 11, 20, 0.98); 
-    backdrop-filter: blur(16px);
-    /* Bordure épaisse et lumineuse */
-    border: 2px solid rgba(34, 211, 238, 0.8); 
-    box-shadow: 0 0 25px rgba(34, 211, 238, 0.2);
-    color: #fff;
-  }
-}
-
-/* 🟢 AJOUT : Forcer le conteneur du HUD à occuper tout l'écran */
-#hud-container {
-  height: 100dvh; /* dvh = dynamic viewport height, plus robuste sur mobile */
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-.clip-path-hud {
-  clip-path: polygon(
-    10px 0,
-    100% 0,
-    100% calc(100% - 10px),
-    calc(100% - 10px) 100%,
-    0 100%,
-    0 10px
-  );
-}
-
+/* Autofill Formulaires */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -129,4 +164,29 @@ textarea:-webkit-autofill {
   -webkit-text-fill-color: white !important;
   transition: background-color 9999s ease-in-out 0s;
   box-shadow: 0 0 0px 1000px transparent inset;
+}
+
+/* Custom Scrollbar pour le menu HUD (Scanneur) */
+.hud-scrollbar {
+  /* Support Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.5) rgba(7, 11, 20, 0.8);
+}
+
+.hud-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hud-scrollbar::-webkit-scrollbar-track {
+  background: rgba(7, 11, 20, 0.8);
+  border-left: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.hud-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.5);
+  border-radius: 10px;
+}
+
+.hud-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.8);
 }
