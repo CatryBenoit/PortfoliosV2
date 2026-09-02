@@ -153,7 +153,6 @@ export default function Home() {
 
   return (
     <main className="fixed inset-0 w-screen h-screen bg-[#010103] overflow-hidden">
-      {/* ... Votre JSX habituel ... */}
       {showWarning && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-[#010103] border border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.2)] rounded-lg p-6 max-w-md w-full font-mono relative overflow-hidden">
@@ -192,7 +191,27 @@ export default function Home() {
           <EffectComposer><Bloom mipmapBlur luminanceThreshold={0.8} intensity={1.5} /></EffectComposer>
         </Canvas>
       </div>
-      <HUD activeProject={activeProject} onClose={() => setActiveProject(null)} onNext={nextProject} onPrev={prevProject} currentSystem={currentSystem} onChangeSystem={changeSystem} uniqueTechs={uniqueTechs} selectedTech={selectedTech} onSelectTech={handleTechChange} />
+
+      {/* 🟢 MODIFICATION ICI : On ajoute systemProjects et onSelectProject au HUD */}
+      <HUD 
+        activeProject={activeProject} 
+        onClose={() => setActiveProject(null)} 
+        onNext={nextProject} 
+        onPrev={prevProject} 
+        currentSystem={currentSystem} 
+        onChangeSystem={changeSystem} 
+        uniqueTechs={uniqueTechs} 
+        selectedTech={selectedTech} 
+        onSelectTech={handleTechChange}
+        systemProjects={currentPlanets}
+        onSelectProject={(projectName) => {
+          // On retrouve le projet correspondant au nom cliqué dans le menu de droite
+          const found = currentPlanets.find(p => p.name === projectName);
+          if (found) {
+            setActiveProject(found); // Déclenche le zoom de la caméra (grâce à CameraRig)
+          }
+        }}
+      />
     </main>
   );
 }

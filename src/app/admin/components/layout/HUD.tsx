@@ -6,6 +6,7 @@ import ContactForm from "./Contact/ContactForm";
 import ProfilePanel from "./ProfilePanel/ProfilePanel";
 import SkillsPanel from "./SkillsPanel/SkillsPanel";
 import TechFilter from "./TechFilter/TechFilter";
+import PlanetSelector from "./PlanetSelector/PlanetSelector"; // 🟢 AJOUT : Pense à vérifier le chemin si tu l'as mis dans un dossier
 import { HUD_STYLES as S } from "./HUD.styles"; 
 
 interface Project {
@@ -24,13 +25,18 @@ interface HUDProps {
   uniqueTechs: string[];
   selectedTech: string;
   onSelectTech: (tech: string) => void;
+  
+  // 🟢 NOUVELLES PROPS : Pour le sélecteur de planètes
+  systemProjects: Project[]; // La liste des projets/planètes du système actuel
+  onSelectProject: (projectName: string) => void; // Fonction pour cibler une planète
 }
 
 type TabType = "none" | "profile" | "skills" | "contact";
 
 export default function HUD({ 
   activeProject, onClose, onNext, onPrev, currentSystem, onChangeSystem,
-  uniqueTechs, selectedTech, onSelectTech
+  uniqueTechs, selectedTech, onSelectTech,
+  systemProjects, onSelectProject // 🟢 Récupération des nouvelles props
 }: HUDProps) {
   const [activeTab, setActiveTab] = useState<TabType>("none");
 
@@ -60,6 +66,17 @@ export default function HUD({
 
       <div className={S.mainContainer}>
         
+        {/* 🟢 NOUVEAU : SÉLECTEUR DE PLANÈTES (en haut à droite via absolute) */}
+        <PlanetSelector 
+          // On transforme tes Projets au format attendu par le PlanetSelector
+          planets={systemProjects.map(p => ({ id: p.name, name: p.name }))} 
+          selectedPlanetId={activeProject ? activeProject.name : null}
+          onSelectPlanet={(projectName) => {
+            onSelectProject(projectName); // Focus la planète en 3D
+            setActiveTab("none"); // Ferme les autres panneaux pour bien voir
+          }}
+        />
+
         {/* ================= HEADER ================= */}
         <header className={S.header}>
           <div className={S.pilotBox}>
