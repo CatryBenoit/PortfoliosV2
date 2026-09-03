@@ -2,3 +2,14 @@ node_modules
 .next
 .git
 README.md
+
+# Ne jamais graver de secrets locaux dans l'image (les vrais valeurs sont
+# passées via build-args / docker run -e, jamais copiées depuis le disque).
+.env
+.env.local
+.env*.local
+
+# Base SQLite locale : peut contenir des données réelles (messages de
+# contact) et ne doit pas finir dans l'image ni dans le contexte de build.
+*.db
+*.db-journal

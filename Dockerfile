@@ -14,17 +14,16 @@ COPY . .
 # 🚨 TRÈS IMPORTANT : Générer le client Prisma AVANT le build Next.js
 RUN npx prisma generate
 
-# On réceptionne les variables depuis l'Action GitHub (Supabase retiré)
+# Seule une variable PUBLIQUE (NEXT_PUBLIC_*) doit être connue au moment du
+# build : elle est gravée telle quelle dans le bundle JS envoyé au navigateur.
+# ADMIN_PASSWORD et GITHUB_TOKEN ne sont PLUS des build-args (ils ne doivent
+# jamais transiter par l'image) : ce sont des variables d'environnement à
+# fournir au conteneur au lancement (docker run -e ...).
 ARG DATABASE_URL
-ARG NEXT_PUBLIC_ADMIN_PASSWORD
-ARG NEXT_PUBLIC_GITHUB_TOKEN
-ARG NEXT_PUBLIC_APIMail
+ARG NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY
 
-# On les rend disponibles pour le build Next.js
 ENV DATABASE_URL=$DATABASE_URL
-ENV NEXT_PUBLIC_ADMIN_PASSWORD=$NEXT_PUBLIC_ADMIN_PASSWORD
-ENV NEXT_PUBLIC_GITHUB_TOKEN=$NEXT_PUBLIC_GITHUB_TOKEN
-ENV NEXT_PUBLIC_APIMail=$NEXT_PUBLIC_APIMail
+ENV NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY=$NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY
 
 # Construction du projet Next.js
 RUN npm run build
@@ -46,9 +45,21 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/prisma ./prisma
 
-# Si votre fichier SQL.db est versionné sur Git, décommentez la ligne ci-dessous :
-COPY --from=builder /app/SQL.db ./SQL.db
+# SQL.db n'est plus versionné sur Git (il peut contenir des données réelles :
+# messages du formulaire de contact, etc.) — il n'existe donc pas forcément
+# dans le contexte de build. `prisma db push` au démarrage crée le schéma si
+# la base est absente et ne touche pas aux données si elle existe déjà.
+# Pour conserver les données entre redéploiements, montez un volume sur
+# /app/prisma (ex: -v portfolio_db:/app/prisma).
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# ADMIN_PASSWORD et GITHUB_TOKEN doivent être fournis au lancement du
+# conteneur, par ex. :
+#   docker run -e ADMIN_PASSWORD=... -e GITHUB_TOKEN=... -p 3000:3000 ...
+#
+# Pas de --accept-data-loss volontairement : si un futur changement de schéma
+# est destructif, le déploiement échoue au lieu de perdre des données en
+# silence (il suffit alors de lancer la commande une fois à la main avec le
+# flag pour confirmer).
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npm start"]
