@@ -98,8 +98,8 @@ active:scale-95
   statsBarFill: "h-full bg-cyan-400 w-[92%]",
   
   // ================= FOOTER =================
-  footer: "w-full flex justify-between items-end relative z-10",
+  footer: "fixed bottom-4 left-4 right-4 md:left-6 md:right-6 z-40 flex justify-between items-end pointer-events-none",
   footerLeftBox: "glass-panel px-3 py-1.5 flex items-center gap-3 pointer-events-auto border-2 border-cyan-400 bg-[#070b14] text-[18px] text-white font-bold uppercase tracking-widest",
   footerRightBox: "glass-panel px-4 py-2 flex items-center gap-3 pointer-events-auto border-2 border-cyan-400 bg-[#070b14] text-[18px] text-white font-black uppercase tracking-[0.3em]",
   pulsingDot: "w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"
-}; 
+};

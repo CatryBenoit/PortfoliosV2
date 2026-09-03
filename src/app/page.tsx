@@ -5,8 +5,7 @@ import { Stars, OrbitControls, useTexture } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 
-// 1. On supprime l'import de supabase et on importe la Server Action
-import { getProjects } from "@/app/actions"; // <-- Ajustez le chemin si besoin
+import { getProjects } from "@/app/actions";
 
 import HUD from "./admin/components/layout/HUD";
 import Soleil from "./admin/components/canvas/Soleil/Soleil";
@@ -15,8 +14,7 @@ import HyperSpace from "./admin/components/canvas/HyperSpace/HyperSpace";
 
 type SystemKey = "PRO" | "PERSO" | "SCOLAIRE";
 
-function CameraRig({ activeProject, controlsRef }: { activeProject: any, controlsRef: any }) {
-  // ... (Ce code reste inchangé)
+function CameraRig({ activeProject, controlsRef }: { activeProject: any; controlsRef: any }) {
   useFrame((state) => {
     if (!controlsRef.current) return;
 
@@ -35,7 +33,6 @@ function CameraRig({ activeProject, controlsRef }: { activeProject: any, control
 }
 
 function VoieLactee() {
-  // ... (Ce code reste inchangé)
   const bgRef = useRef<THREE.Mesh>(null);
   const texture = useTexture("/textures/Star/8k_stars_milky_way.jpg");
 
@@ -69,8 +66,6 @@ export default function Home() {
   useEffect(() => {
     const loadPlanets = async () => {
       setLoading(true);
-      
-      // 2. On utilise la Server Action à la place de Supabase
       const { data, error } = await getProjects();
       
       if (error) {
@@ -98,7 +93,6 @@ export default function Home() {
     loadPlanets();
   }, []);
 
-  // ... (Le reste de votre code, fonctions handleTechChange, return(), etc., reste strictement identique)
   const currentPlanets = allProjects.filter((p) => {
     if (selectedTech !== "ALL") {
       return p.tech.toLowerCase().includes(selectedTech.toLowerCase());
@@ -170,9 +164,11 @@ export default function Home() {
           </div>
         </div>
       )}
+      
       <div className={`fixed inset-0 z-40 bg-cyan-100 transition-opacity duration-500 pointer-events-none mix-blend-overlay ${isJumping ? "opacity-20" : "opacity-0"}`} />
+      
       <div className="absolute top-0 left-0 w-full h-full z-0">
-        <Canvas camera={{ position: [0, 8, 20], fov: 45, far: 15000 }} onPointerMissed={() => setActiveProject(null)} style={{ width: '100%', height: '100%' }}>
+        <Canvas camera={{ position: [0, 8, 20], fov: 45, far: 15000 }} onPointerMissed={() => setActiveProject(null)} style={{ width: "100%", height: "100%" }}>
           <OrbitControls ref={controlsRef} makeDefault enablePan={false} minDistance={8} maxDistance={40} enabled={!activeProject && !isJumping} />
           <ambientLight intensity={0.2} />
           <fog attach="fog" args={["#010103", 50, 800]} />
@@ -192,7 +188,7 @@ export default function Home() {
         </Canvas>
       </div>
 
-      {/* 🟢 MODIFICATION ICI : On ajoute systemProjects et onSelectProject au HUD */}
+      {/* Interface HUD avec la colonne unifiée à gauche */}
       <HUD 
         activeProject={activeProject} 
         onClose={() => setActiveProject(null)} 
@@ -204,11 +200,10 @@ export default function Home() {
         selectedTech={selectedTech} 
         onSelectTech={handleTechChange}
         systemProjects={currentPlanets}
-        onSelectProject={(projectName) => {
-          // On retrouve le projet correspondant au nom cliqué dans le menu de droite
-          const found = currentPlanets.find(p => p.name === projectName);
+        onSelectProject={(id) => {
+          const found = currentPlanets.find((p) => p.id === id || p.name === id);
           if (found) {
-            setActiveProject(found); // Déclenche le zoom de la caméra (grâce à CameraRig)
+            setActiveProject(found);
           }
         }}
       />
