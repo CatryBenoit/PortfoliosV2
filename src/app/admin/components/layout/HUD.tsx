@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Shield, User, Rocket, Satellite } from "lucide-react";
+import { Shield, User, Rocket, Satellite, Menu, X } from "lucide-react";
 import ProjectPanel from "./ProjectPanel/ProjectPanel";
 import ContactForm from "./Contact/ContactForm";
 import ProfilePanel from "./ProfilePanel/ProfilePanel";
@@ -38,19 +38,32 @@ export default function HUD({
   systemProjects, onSelectProject
 }: HUDProps) {
   const [activeTab, setActiveTab] = useState<TabType>("none");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (activeProject) setActiveTab("none");
+    if (activeProject) { setActiveTab("none"); setMobileMenuOpen(false); }
   }, [activeProject]);
 
   const closeAll = () => {
     setActiveTab("none");
     onClose();
+    setMobileMenuOpen(false);
   };
 
   const handleSystemChange = (sys: "PRO" | "PERSO" | "SCOLAIRE") => {
     onChangeSystem(sys);
     closeAll();
+  };
+
+  const handleTechSelect = (tech: string) => {
+    onSelectTech(tech);
+    setMobileMenuOpen(false);
+  };
+
+  const handlePlanetSelect = (planetId: any) => {
+    onSelectProject(planetId);
+    setActiveTab("none");
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -65,8 +78,8 @@ export default function HUD({
       <div className={S.cornerBR} />
 
       {/* ================= 1. BARRE DE NAVIGATION SUPÉRIEURE (CENTRÉE ET ENTIÈREMENT VISIBLE) ================= */}
-      <header className="fixed top-6 left-1/2 -translate-x-1/2 z-40 pointer-events-auto flex items-center justify-center">
-        <nav className="flex items-center justify-center gap-3 md:gap-4 !translate-y-0 !transform-none">
+      <header className={S.headerWrapper}>
+        <nav className={S.navBar}>
           {[
             { id: "none", label: "RADAR", action: closeAll, active: activeTab === "none" && !activeProject },
             { id: "profile", label: "PROFIL", action: () => { setActiveTab("profile"); onClose(); }, active: activeTab === "profile" },
@@ -84,11 +97,25 @@ export default function HUD({
         </nav>
       </header>
 
+      {/* Bouton hamburger : ouvre/ferme la colonne gauche sur mobile/tablette */}
+      <button
+        onClick={() => setMobileMenuOpen((v) => !v)}
+        className={S.mobileMenuToggle}
+        aria-label={mobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+      >
+        {mobileMenuOpen ? <X size={20} className="text-cyan-400" /> : <Menu size={20} className="text-cyan-400" />}
+      </button>
+
+      {/* Fond cliquable derrière le tiroir mobile (clic en dehors = fermer) */}
+      {mobileMenuOpen && (
+        <div className={S.mobileMenuBackdrop} onClick={() => setMobileMenuOpen(false)} />
+      )}
+
       {/* ================= 2. COLONNE GAUCHE COMPLÈTE (DE HAUT EN BAS) ================= */}
-      <div className="fixed top-6 bottom-12 left-4 md:left-6 w-64 md:w-72 flex flex-col gap-5 z-30 pointer-events-auto">
-        
+      <div className={`${S.leftColumnBase} ${mobileMenuOpen ? S.leftColumnOpen : S.leftColumnClosed}`}>
+
         {/* 1. PILOT_ID */}
-        <div className={`${S.pilotBox} w-full shrink-0`}>
+        <div className={S.pilotBox}>
           <div className={S.pilotAvatar}>
             <User className="text-cyan-400" size={28} />
           </div>
@@ -103,23 +130,20 @@ export default function HUD({
           <PlanetSelector
             planets={(systemProjects || []).map((p) => ({ id: p.id ?? p.name, name: p.name }))}
             selectedPlanetId={activeProject?.id ?? activeProject?.name ?? null}
-            onSelectPlanet={(planetId) => {
-              onSelectProject(planetId);
-              setActiveTab("none");
-            }}
+            onSelectPlanet={handlePlanetSelect}
           />
         </div>
 
         {/* 3. NAV STATION */}
-        <aside className={`${S.navStationBox} w-full shrink-0`}>
+        <aside className={S.navStationBox}>
           <div className={S.navStationHeader}>
             <span className={S.navStationTitle}>NAV_STATION </span>
             <Satellite size={18} className="text-cyan-400 animate-pulse" />
           </div>
           <div className="flex flex-col gap-1.5">
             {(["PRO", "PERSO", "SCOLAIRE"] as const).map((sys) => (
-              <button 
-                key={sys} 
+              <button
+                key={sys}
                 onClick={() => handleSystemChange(sys)}
                 className={`${S.sysBtnBase} ${currentSystem === sys ? S.sysBtnActive : S.sysBtnInactive}`}
               >
@@ -130,18 +154,21 @@ export default function HUD({
         </aside>
 
         {/* 4. SCANNEUR (S'ÉTIRE POUR REMPLIR TOUT LE BAS DE LA COLONNE) */}
-        <div className="w-full flex-1 min-h-0 flex flex-col">
-          <TechFilter 
-            uniqueTechs={uniqueTechs} 
-            selectedTech={selectedTech} 
-            onSelectTech={onSelectTech} 
+        <div className={S.scannerWrapper}>
+          <TechFilter
+            uniqueTechs={uniqueTechs}
+            selectedTech={selectedTech}
+            onSelectTech={handleTechSelect}
           />
         </div>
       </div>
 
       {/* ================= 3. CONTENU CENTRAL (MODALS) ================= */}
-      <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
-        <div className="pointer-events-auto">
+      <div
+        className={activeTab !== "none" ? S.centralModalWrapperActive : S.centralModalWrapper}
+        onClick={activeTab !== "none" ? closeAll : undefined}
+      >
+        <div className={S.centralModalInner} onClick={(e) => e.stopPropagation()}>
           {activeTab === "profile" && <ProfilePanel onClose={closeAll} />}
           {activeTab === "skills" && <SkillsPanel onClose={closeAll} />}
           {activeTab === "contact" && <ContactForm onClose={closeAll} />}
@@ -150,13 +177,15 @@ export default function HUD({
 
       {/* ================= 4. PANNEAU PROJET (DROITE) ================= */}
       {activeProject && activeTab === "none" && (
-        <div className="fixed top-20 right-4 md:right-8 z-30 pointer-events-auto">
-          <ProjectPanel project={activeProject} onClose={onClose} onNext={onNext} onPrev={onPrev} />
+        <div className={S.projectPanelBackdrop} onClick={onClose}>
+          <div className={S.projectPanelWrapper} onClick={(e) => e.stopPropagation()}>
+            <ProjectPanel project={activeProject} onClose={onClose} onNext={onNext} onPrev={onPrev} />
+          </div>
         </div>
       )}
 
       {/* ================= 5. STATISTIQUES VAISSEAU (BAS DROITE) ================= */}
-      <aside className={`${S.statsBox} fixed bottom-12 right-4 md:right-6 z-30 pointer-events-auto`}>
+      <aside className={S.statsBox}>
         <div className={S.statsHeader}>
           <span>SHIP_STATS</span><Shield size={20} />
         </div>
@@ -176,7 +205,7 @@ export default function HUD({
       <footer className={S.footer}>
         <div className={S.footerLeftBox}>
           <div className={S.pulsingDot} />
-          <span>BELFORT_SECTOR // 47.63°N 6.86°E</span>
+          <span>BELFORT_SECTOR<span className={S.footerCoords}> // 47.63°N 6.86°E</span></span>
         </div>
         <div className={S.footerRightBox}>
           <Rocket size={16} className="text-cyan-400" />

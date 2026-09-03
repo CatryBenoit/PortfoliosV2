@@ -9,10 +9,7 @@ export default function HyperSpace({ isJumping }: { isJumping: boolean }) {
   const tunnelRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshBasicMaterial>(null);
 
-  const texture = useLoader(
-    THREE.TextureLoader, 
-    "https://s3-us-west-2.amazonaws.com/s.cdpn.io/18515/PIA09959-1280x800_copy.jpg"
-  );
+  const texture = useLoader(THREE.TextureLoader, "/textures/HyperSpace/tunnel.jpg");
 
   useMemo(() => {
     texture.wrapS = THREE.RepeatWrapping;

@@ -1,35 +1,57 @@
 "use client";
-import { useState } from "react";
-import { ShieldAlert, Save, Plus, Database, Rocket, Lock, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShieldAlert, Save, Plus, Database, Rocket, Lock, RefreshCw, LogOut } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 
 // 1. On importe nos Server Actions au lieu de Supabase
-import { createOrUpdateProject, getExistingProjectsForSync } from "@/app/actions";
+import { createOrUpdateProject, checkAdminSession, adminLogin, adminLogout, syncGithubRepos } from "@/app/actions";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [inputPassword, setInputPassword] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const [formData, setFormData] = useState({ 
+  const [formData, setFormData] = useState({
     name: "",
     system: "PRO",
     tech: "",
     color: "#3b82f6",
     posZ: "10",
     description: "",
-    github_url: "" 
+    github_url: ""
   });
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Le mot de passe est désormais vérifié côté serveur (Server Action) : il
+  // ne transite plus jamais dans le bundle JS envoyé au navigateur. On
+  // vérifie aussi, au chargement, si une session valide existe déjà (cookie).
+  useEffect(() => {
+    checkAdminSession()
+      .then(({ authenticated }) => setIsAuthenticated(authenticated))
+      .finally(() => setCheckingSession(false));
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const secureCryptoKey = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-    if (inputPassword === secureCryptoKey) {
-      setIsAuthenticated(true);
-    } else {
-      alert("❌ CODE D'ACCÈS INCORRECT. SYSTÈME VERROUILLÉ.");
+    setIsLoggingIn(true);
+    try {
+      const { ok } = await adminLogin(inputPassword);
+      if (ok) {
+        setIsAuthenticated(true);
+        setInputPassword("");
+      } else {
+        alert("❌ CODE D'ACCÈS INCORRECT. SYSTÈME VERROUILLÉ.");
+      }
+    } finally {
+      setIsLoggingIn(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await adminLogout();
+    setIsAuthenticated(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -73,108 +95,13 @@ export default function AdminPage() {
 
   const handleGithubSync = async () => {
     setIsSyncing(true);
-
     try {
-      const githubUsername = "CatryBenoit";
-      const githubToken = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+      // Toute la synchro (appels GitHub + token) tourne désormais côté
+      // serveur : le navigateur ne voit jamais le token GitHub.
+      const { data, error } = await syncGithubRepos();
+      if (error || !data) throw new Error(error || "Réponse vide");
 
-      const authHeader: HeadersInit | undefined = githubToken
-        ? { Authorization: `Bearer ${githubToken}` }
-        : undefined;
-
-      const response = await fetch(`https://api.github.com/users/${githubUsername}/repos`, {
-        headers: authHeader,
-      });
-
-      if (!response.ok) throw new Error(`GitHub a refusé l'accès (${response.status})`);
-      const repos = await response.json();
-
-      // 3. On récupère les planètes existantes via la Server Action
-      const { data: existingProjects } = await getExistingProjectsForSync();
-
-      const existingMap = new Map(
-        existingProjects?.map((p: any) => [p.name.toLowerCase(), p]) || []
-      );
-
-      let createdCount = 0;
-      let updatedCount = 0;
-
-      for (const repo of repos) {
-        const repoNameLower = repo.name.toLowerCase();
-        const isAlreadyInDb = existingMap.has(repoNameLower);
-
-        let customTech = repo.language || "Markdown / Autre";
-        let customColor = "#22d3ee";
-        let customSystem = "PRO";
-        let customDesc = repo.description || "Aucune description fournie sur GitHub.";
-
-        try {
-          const readmeRes = await fetch(
-            `https://api.github.com/repos/${githubUsername}/${repo.name}/readme`,
-            { headers: { Accept: "application/vnd.github.raw", ...(authHeader || {}) } }
-          );
-
-          if (readmeRes.ok) {
-            const readmeText = await readmeRes.text();
-            const startTag = "<!-- PORTFOLIO_CONFIG";
-            const endTag = "-->";
-            const startIndex = readmeText.indexOf(startTag);
-
-            if (startIndex !== -1) {
-              const endIndex = readmeText.indexOf(endTag, startIndex);
-              if (endIndex !== -1) {
-                const blockContent = readmeText.substring(startIndex + startTag.length, endIndex);
-                
-                const systemMatch = blockContent.match(/system:\s*([^\r\n]+)/i);
-                const techMatch = blockContent.match(/tech:\s*([^\r\n]+)/i);
-                const descMatch = blockContent.match(/desc:\s*([^\r\n]+)/i);
-                const colorMatch = blockContent.match(/color:\s*([^\r\n]+)/i);
-
-                if (systemMatch) customSystem = systemMatch[1].trim().toUpperCase();
-                if (techMatch) customTech = techMatch[1].trim();
-                if (colorMatch) customColor = colorMatch[1].trim();
-                if (descMatch) customDesc = descMatch[1].trim();
-              }
-            }
-          }
-        } catch (readmeError) {
-          console.warn(`❌ Impossible de lire le README de ${repo.name}`, readmeError);
-        }
-
-        let posX, posY, posZ;
-
-        if (isAlreadyInDb) {
-          const oldPlanet = existingMap.get(repoNameLower)!;
-          posX = oldPlanet.pos_x;
-          posY = oldPlanet.pos_y;
-          posZ = oldPlanet.pos_z;
-          updatedCount++;
-        } else {
-          const angle = Math.random() * Math.PI * 2;
-          const radius = Math.floor(Math.random() * (22 - 8 + 1)) + 8;
-          posX = Math.cos(angle) * radius;
-          posY = 0;
-          posZ = Math.sin(angle) * radius;
-          createdCount++;
-        }
-
-        // 4. Upsert individuel via la Server Action
-        const { error } = await createOrUpdateProject({
-          name: repo.name,
-          system: customSystem,
-          tech: customTech,
-          color: customColor,
-          pos_x: posX,
-          pos_y: posY,
-          pos_z: posZ,
-          description: customDesc,
-          github_url: repo.html_url,
-        });
-
-        if (error) console.error(`Erreur pour ${repo.name}`, error);
-      }
-
-      alert(`📡 Synchro terminée !\n\n🆕 Créés : ${createdCount}\n🔄 Mis à jour : ${updatedCount}`);
+      alert(`📡 Synchro terminée !\n\n🆕 Créés : ${data.createdCount}\n🔄 Mis à jour : ${data.updatedCount}`);
       window.location.reload();
     } catch (error) {
       console.error("Erreur de synchronisation :", error);
@@ -183,6 +110,17 @@ export default function AdminPage() {
       setIsSyncing(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[#010103] text-white font-mono flex items-center justify-center p-4">
+        <div className="scanline z-0 pointer-events-none" />
+        <div className="text-cyan-400 text-xs uppercase tracking-[0.3em] animate-pulse relative z-10">
+          &gt; Vérification_session...
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -195,15 +133,15 @@ export default function AdminPage() {
             <p className="text-xs text-white/40 uppercase mt-1">Veuillez injecter la clé de décryptage admin</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
-            <input 
-              type="password" 
+            <input
+              type="password"
               placeholder="ENTREZ_LE_CODE_SECURE"
               value={inputPassword}
               onChange={(e) => setInputPassword(e.target.value)}
               className="w-full bg-black border border-red-500/50 p-3 text-center text-sm tracking-widest text-red-400 outline-none focus:border-red-500 font-bold uppercase"
             />
-            <button type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest py-3 text-xs transition-all">
-              Authentification
+            <button type="submit" disabled={isLoggingIn} className="w-full bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-widest py-3 text-xs transition-all disabled:opacity-50">
+              {isLoggingIn ? "Vérification..." : "Authentification"}
             </button>
           </form>
         </div>
@@ -222,19 +160,27 @@ export default function AdminPage() {
               <ShieldAlert size={14} className="text-green-400" /> 
               <span className="text-green-400">ACCÈS_AUTORISÉ // ACCÈS_ROOT</span>
             </div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-3">
-              <Database className="text-cyan-400" /> Générateur_de_Planètes
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black uppercase tracking-tighter flex items-center gap-3 break-words">
+              <Database className="text-cyan-400 shrink-0" /> Générateur_de_Planètes
             </h1>
           </div>
           
-          <button 
-            onClick={handleGithubSync}
-            disabled={isSyncing}
-            className="flex items-center gap-2 bg-cyan-950/40 border-2 border-cyan-400 text-cyan-400 font-bold text-xs uppercase px-4 py-2.5 tracking-widest hover:bg-cyan-400 hover:text-black transition-all disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
-            {isSyncing ? "SCAN_EN_COURS..." : "Synchroniser GitHub"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGithubSync}
+              disabled={isSyncing}
+              className="flex items-center gap-2 bg-cyan-950/40 border-2 border-cyan-400 text-cyan-400 font-bold text-xs uppercase px-4 py-2.5 tracking-widest hover:bg-cyan-400 hover:text-black transition-all disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
+              {isSyncing ? "SCAN_EN_COURS..." : "Synchroniser GitHub"}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-red-950/30 border-2 border-red-500/50 text-red-400 font-bold text-xs uppercase px-4 py-2.5 tracking-widest hover:bg-red-500 hover:text-white transition-all"
+            >
+              <LogOut size={14} /> Déconnexion
+            </button>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -244,7 +190,7 @@ export default function AdminPage() {
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-[10px] text-cyan-400 uppercase tracking-widest font-bold">Nom du Projet</label>
                   <input type="text" name="name" required value={formData.name} onChange={handleChange} className="w-full bg-black/50 border border-cyan-500/30 p-2 text-sm text-white focus:border-cyan-400 outline-none transition-all" />

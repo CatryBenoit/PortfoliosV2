@@ -108,7 +108,7 @@ export default function SkillsPanel({
         
         {/* HEADER */}
         <div className={S.header}>
-          <div>
+          <div className={S.headerTitleWrapper}>
             <div className={S.headerSubtitle}>
               <Code2 size={14} />
               <span>CORE_COMPETENCIES</span>
@@ -128,59 +128,22 @@ export default function SkillsPanel({
         </div>
 
         {/* CONTENT */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className={S.categoryGrid}>
 
           {categories.map((category, index) => (
-            <div
-              key={index}
-              className="
-                border border-cyan-500/30
-                bg-black/30
-                p-4
-                backdrop-blur-sm
-              "
-            >
+            <div key={index} className={S.categoryCard}>
               {/* CATEGORY TITLE */}
-              <div className="
-                flex items-center gap-2
-                text-cyan-400
-                font-bold
-                text-xs
-                tracking-[0.25em]
-                uppercase
-                mb-4
-              ">
+              <div className={S.categoryTitle}>
                 {category.icon}
                 {category.title}
               </div>
 
               {/* SKILLS */}
-              <div className="
-                flex flex-wrap gap-2
-                flex flex-wrap gap-x-4 gap-y-2
-              ">
+              <div className={S.skillList}>
                 {category.skills.map((skill, i) => (
-                  <div
-                    key={i}
-                    className="
-                      px-10 py-10
-                      bg-cyan-500/5
-                      p-10
-
-                      text-white
-                      text-xs
-                      uppercase
-                      tracking-wider
-
-                      hover:bg-cyan-400/10
-                      flex flex-wrap gap-x-4 gap-y-2
-
-                      transition-all
-                    "
-                  >
-
-                  {skill  + "," +  "\u00A0"}
-                  </div>
+                  <span key={i} className={S.skillBadge}>
+                    {skill}
+                  </span>
                 ))}
               </div>
             </div>

@@ -76,11 +76,11 @@ export default function Planete({ project, isActive, onClick }: any) {
       planetRef.current.rotation.y += delta * 0.5;
     }
 
-    if (groupRef.current && !isActive) {
+    if (groupRef.current) {
       currentAngle.current += delta * vitesseOrbite;
       groupRef.current.position.x = Math.cos(currentAngle.current) * rayonOrbite;
       groupRef.current.position.z = Math.sin(currentAngle.current) * rayonOrbite;
-      groupRef.current.position.y = project.pos[1]; 
+      groupRef.current.position.y = project.pos[1];
     }
 
     if (moonRef.current && moonConfig) {

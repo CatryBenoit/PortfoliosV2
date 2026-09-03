@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* 1. Les animations (optimisées pour plus de punch) */
 @keyframes flicker {
@@ -82,6 +80,16 @@ body {
   background-color: #010103; /* Noir profond spatial */
   color: #f0f9ff;
   font-family: 'Orbitron', 'Inter', monospace; /* Si tu as Orbitron, sinon Inter */
+}
+
+/* Mode dyslexie : bascule la police du site entière vers Lexend (police
+   pensée pour la lisibilité) sans toucher aux couleurs / à la mise en page.
+   Règle volontairement hors de tout @layer : dans Tailwind v4 les utilitaires
+   (font-mono, etc.) vivent dans des cascade layers, qui perdent toujours
+   face à une règle non "layered" — pas besoin de !important. */
+.dyslexia-mode,
+.dyslexia-mode * {
+  font-family: var(--font-lexend), "Inter", sans-serif;
 }
 
 /* 🟢 Forcer le conteneur du HUD à occuper tout l'écran */

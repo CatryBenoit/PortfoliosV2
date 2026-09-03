@@ -25,7 +25,7 @@ export default function ContactForm({ onClose }: { onClose: () => void }) {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          access_key: process.env.NEXT_PUBLIC_APIMail ,
+          access_key: process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY,
           name: formData.name,
           email: formData.email,
           subject: "Portfolio : " + formData.subject || "Nouveau message depuis le Portfolio",
