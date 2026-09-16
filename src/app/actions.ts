@@ -110,17 +110,37 @@ export async function getExistingProjectsForSync() {
   }
 }
 
-// Fonction Upsert (Création ou Mise à jour)
+// Fonction Upsert (Création ou Mise à jour). Si `id` est fourni (édition d'un
+// projet existant depuis la page admin), on met à jour cette ligne précise
+// par id plutôt que par nom : sinon renommer un projet créerait une nouvelle
+// ligne au lieu de modifier l'existante (l'upsert cible `where: { name }`).
 export async function createOrUpdateProject(projectData: any) {
   if (!(await isAdminAuthenticated())) {
     return { data: null, error: "Non autorisé." };
   }
   try {
-    const project = await upsertProject(projectData);
+    const { id, ...data } = projectData;
+    const project = id
+      ? await prisma.project.update({ where: { id }, data })
+      : await upsertProject(data);
     return { data: project, error: null };
   } catch (error) {
     console.error("Erreur de forge :", error);
     return { data: null, error: "La forge de la planète a échoué." };
+  }
+}
+
+// Liste complète des projets pour la page d'édition admin.
+export async function getAllProjectsForAdmin() {
+  if (!(await isAdminAuthenticated())) {
+    return { data: null, error: "Non autorisé." };
+  }
+  try {
+    const projects = await prisma.project.findMany({ orderBy: { name: "asc" } });
+    return { data: projects, error: null };
+  } catch (error) {
+    console.error("Erreur de récupération :", error);
+    return { data: null, error: "Impossible de lire la base." };
   }
 }
 
@@ -161,6 +181,8 @@ export async function syncGithubRepos() {
       let customColor = "#22d3ee";
       let customSystem = "PRO";
       let customDesc = repo.description || "Aucune description fournie sur GitHub.";
+      let customVisible: boolean | undefined;
+      let customDebloy: boolean | undefined;
 
       try {
         const readmeRes = await fetch(
@@ -179,15 +201,21 @@ export async function syncGithubRepos() {
             if (endIndex !== -1) {
               const blockContent = readmeText.substring(startIndex + startTag.length, endIndex);
 
+
+
               const systemMatch = blockContent.match(/system:\s*([^\r\n]+)/i);
               const techMatch = blockContent.match(/tech:\s*([^\r\n]+)/i);
               const descMatch = blockContent.match(/desc:\s*([^\r\n]+)/i);
               const colorMatch = blockContent.match(/color:\s*([^\r\n]+)/i);
+              const debloyMatch = blockContent.match(/debloy:\s*([^\r\n]+)/i);
+              const visibleMatch = blockContent.match(/visible:\s*([^\r\n]+)/i);
 
               if (systemMatch) customSystem = systemMatch[1].trim().toUpperCase();
               if (techMatch) customTech = techMatch[1].trim();
               if (colorMatch) customColor = colorMatch[1].trim();
               if (descMatch) customDesc = descMatch[1].trim();
+              if (debloyMatch) customDebloy = debloyMatch[1].trim().toLowerCase() === "true";
+              if (visibleMatch) customVisible = visibleMatch[1].trim().toLowerCase() === "true";
             }
           }
         }
@@ -222,6 +250,8 @@ export async function syncGithubRepos() {
           pos_y: posY,
           pos_z: posZ,
           description: customDesc,
+          visible: customVisible,
+          debloy: customDebloy,
           github_url: repo.html_url,
         });
       } catch (upsertError) {

@@ -21,6 +21,8 @@ model Project {
   pos_z       Float
   description String?
   github_url  String?
+  visible     Boolean  @default(false)
+  debloy      Boolean  @default(false)
   createdAt   DateTime @default(now())
 }
 

@@ -197,14 +197,19 @@ export default function Home() {
       if (error) {
         console.error("Erreur de liaison de données :", error);
       } else if (data) {
-        const formatted = data.map((p) => ({
+        // Seules les planètes marquées "visible" apparaissent sur le
+        // portfolio public — les projets en préparation restent masqués
+        // tant que l'admin ne les publie pas.
+        const visibleData = data.filter((p) => p.visible);
+
+        const formatted = visibleData.map((p) => ({
           ...p,
           pos: [p.pos_x, p.pos_y, p.pos_z] as [number, number, number],
         }));
         setAllProjects(formatted);
 
         const techSet = new Set<string>();
-        data.forEach(p => {
+        visibleData.forEach(p => {
           if (p.tech) {
             const splitTechs = p.tech.split(/[\/,]/).map((t: string) => t.trim()).filter((t: string) => t.length > 0);
             splitTechs.forEach((t: string) => techSet.add(t));

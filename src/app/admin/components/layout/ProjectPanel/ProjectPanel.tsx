@@ -6,6 +6,8 @@ interface Project {
   name: string;
   tech: string;
   description: string;
+  github_url: string;
+  debloy?: boolean;
 }
 
 interface ProjectPanelProps {
@@ -18,19 +20,19 @@ interface ProjectPanelProps {
 export default function ProjectPanel({ project, onClose, onNext, onPrev }: ProjectPanelProps) {
   return (
     <div className={S.container}>
-      
+
       {/* HEADER AVEC NAVIGATION */}
       <div className={S.header}>
         <div className={S.headerTitleWrapper}>
           <div className={S.headerSubtitle}>
-            <Activity size={14} className="animate-pulse" /> 
+            <Activity size={14} className="animate-pulse" />
             <span>DATA_STREAM</span>
           </div>
           <h2 className={S.headerTitle}>
             {project.name}
           </h2>
         </div>
-        
+
         <div className={S.navGroup}>
           <button onClick={onPrev} className={S.navBtn}>
             <ChevronLeft size={18} />
@@ -53,7 +55,7 @@ export default function ProjectPanel({ project, onClose, onNext, onPrev }: Proje
             {project.tech}
           </span>
         </div>
-        
+
         <div>
           <span className={S.sectionLabel}>Logs_Description</span>
           <p className={S.descriptionText}>
@@ -64,11 +66,15 @@ export default function ProjectPanel({ project, onClose, onNext, onPrev }: Proje
 
       {/* ACTIONS */}
       <div className={S.actionGrid}>
-        <button className={S.btnSecondary}>
+        <button className={S.btnSecondary} onClick={() => window.open(project.github_url, '_blank', 'noopener,noreferrer')}>
           <Code size={14} /> GitHub
         </button>
-        <button className={S.btnPrimary}>
-          <ExternalLink size={14} /> Déployer
+        <button
+          className={project.debloy ? S.btnPrimary : S.btnPrimaryDisabled}
+          disabled={!project.debloy}
+          title={project.debloy ? undefined : "Déploiement non disponible pour ce projet"}
+        >
+          <ExternalLink size={14} /> {project.debloy ? "Déployer" : "Indisponible"}
         </button>
       </div>
 

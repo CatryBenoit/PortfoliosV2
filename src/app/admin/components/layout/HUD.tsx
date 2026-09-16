@@ -14,6 +14,8 @@ interface Project {
   name: string;
   tech: string;
   description: string;
+  github_url: string;
+  debloy?: boolean;
 }
 
 interface HUDProps {

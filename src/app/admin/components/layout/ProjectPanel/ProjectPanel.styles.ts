@@ -36,4 +36,6 @@ export const PROJECT_STYLES = {
     "flex items-center justify-center gap-2 bg-cyan-600 border border-cyan-400 py-3 text-[10px] text-white uppercase font-bold transition-all hover:bg-cyan-500",
     GLOW.sm
   ),
+  btnPrimaryDisabled:
+    "flex items-center justify-center gap-2 bg-slate-800/60 border border-slate-600 py-3 text-[10px] text-slate-500 uppercase font-bold cursor-not-allowed",
 };
